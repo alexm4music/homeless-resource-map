@@ -1,0 +1,393 @@
+ObjC.import("Foundation");
+ObjC.import("WebKit");
+ObjC.import("AppKit");
+
+const rootPath = ObjC.unwrap($.NSFileManager.defaultManager.currentDirectoryPath);
+const rootUrl = $.NSURL.fileURLWithPathIsDirectory(rootPath, true);
+const url = $.NSURL.fileURLWithPath(`${rootPath}/index.html`);
+
+$.NSApplication.sharedApplication;
+
+const config = $.WKWebViewConfiguration.alloc.init;
+config.websiteDataStore = $.WKWebsiteDataStore.nonPersistentDataStore;
+
+const webView = $.WKWebView.alloc.initWithFrameConfiguration($.NSMakeRect(0, 0, 1440, 960), config);
+const runLoop = $.NSRunLoop.currentRunLoop;
+
+webView.loadFileURLAllowingReadAccessToURL(url, rootUrl);
+runLoop.runUntilDate($.NSDate.dateWithTimeIntervalSinceNow(0.5));
+waitForLoad();
+waitForExpression("document.querySelectorAll('.resource-card').length >= 35", 10000);
+
+runStep("initial render", `
+  assert(text("#siteTitle").includes("Elgin Homeless Resource Map"), "title renders");
+  assert(qa(".resource-marker").length >= 35, "pins render");
+  assert(qa(".resource-card").length >= 35, "resource cards render");
+  const cardRects = qa(".resource-card").map((card) => card.getBoundingClientRect());
+  assert(cardRects.every((rect, index) => index === cardRects.length - 1 || rect.bottom <= cardRects[index + 1].top + 1), "resource cards do not overlap");
+  const mapRect = q(".real-map").getBoundingClientRect();
+  const mapAreaRect = q(".map-area").getBoundingClientRect();
+  assert(Math.abs(mapRect.width - mapRect.height) <= 2, "map renders as a square");
+  assert(Math.abs(q(".sidebar").getBoundingClientRect().height - mapAreaRect.height) <= 3, "search panel matches map height");
+  assert(Math.abs(q("#detailPanel").getBoundingClientRect().height - mapAreaRect.height) <= 3, "detail panel matches map height");
+  assert(getComputedStyle(q("#resourceList")).overflowY === "scroll", "resource list is the left-panel scroll area");
+  assert(getComputedStyle(q("#detailPanel")).overflowY !== "hidden", "detail panel can scroll");
+  assert(getComputedStyle(q(".scroll-more-cue")).display !== "none", "scroll cue is visible when more resources remain");
+  assert(getComputedStyle(q(".resource-list-fade")).display !== "none", "scroll fade is visible when more resources remain");
+  assert(q(".resource-list").classList.contains("can-scroll"), "resource list exposes persistent scroll affordance");
+  assert(getComputedStyle(q(".resource-list"), "::after").width === "6px", "resource list has a visible scroll thumb");
+  q("#resourceList").scrollTop = q("#resourceList").scrollHeight;
+  q("#resourceList").dispatchEvent(new Event("scroll", { bubbles: true }));
+  assert(getComputedStyle(q(".scroll-more-cue")).display === "none", "scroll cue hides at list bottom");
+  q("#resourceList").scrollTop = 0;
+  q("#resourceList").dispatchEvent(new Event("scroll", { bubbles: true }));
+  return { cardCount: qa(".resource-card").length, pinCount: qa(".resource-marker").length };
+`);
+
+runStep("search and directions", `
+  setValue("#searchInput", "PADS");
+  assert(text(".resource-card .card-title").includes("PADS of Elgin"), "search finds PADS");
+  click(".resource-card");
+  assert(text("#detailPanel h2").includes("PADS of Elgin"), "card click opens details");
+  assert((q("#directionsLink") || {}).href.includes("google.com/maps/dir"), "directions link is Google Maps");
+  assert(getComputedStyle(q(".contact-link[href^='tel:']")).backgroundColor === "rgb(21, 95, 91)", "call action is visually primary");
+  assert(getComputedStyle(q("#directionsLink")).backgroundColor === "rgb(238, 248, 247)", "directions action is second priority");
+  assert(!!q(".chip-count"), "category chips include counts");
+  assert(qa(".quick-stats div").length === 2, "stats strip has two stat pills");
+  assert(!text(".quick-stats").toLowerCase().includes("crisis"), "crisis is not a stats pill");
+  assert(!q("#crisisResourcesBtn"), "crisis resources CTA is removed");
+  assert(!!q(".scroll-more-cue"), "resource list has scroll cue");
+`);
+
+runStep("filters and pins", `
+  click("#resetViewBtn");
+  setValue("#categoryFilter", "Medical", "change");
+  assert(qa(".resource-card").length >= 8, "medical category filter works");
+  q("#openNowFilter").checked = true;
+  q("#openNowFilter").dispatchEvent(new Event("change", { bubbles: true }));
+  assert(qa(".resource-card").length >= 1, "open-now filter works");
+  q("#openNowFilter").checked = false;
+  q("#openNowFilter").dispatchEvent(new Event("change", { bubbles: true }));
+  click(".resource-marker");
+  assert(text("#detailPanel h2").length > 0, "pin click opens details");
+  click("#resetViewBtn");
+  setValue("#categoryFilter", "Crisis", "change");
+  assert(q("#categoryFilter").value === "Crisis", "crisis category remains available in filters");
+  click("#resetViewBtn");
+  setValue("#categoryFilter", "Meals", "change");
+  setValue("#searchInput", "PADS");
+  assert(text(".resource-card .card-title").includes("PADS of Elgin"), "multi-category resource appears in secondary category");
+  click("#resetViewBtn");
+  setValue("#sortFilter", "name-desc", "change");
+  assert(text(".resource-card .card-title").includes("Zion Lutheran Church"), "main resource list sorts Z-A");
+`);
+
+runStep("location directions", `
+  Object.defineProperty(navigator, "geolocation", {
+    configurable: true,
+    value: {
+      getCurrentPosition(success) {
+        success({ coords: { latitude: 42.038, longitude: -88.286 } });
+      },
+    },
+  });
+  click("#useLocationBtn");
+  assert(text("#useLocationBtn").includes("Location ready"), "location button handles success");
+  assert((q("#directionsLink") || {}).href.includes("origin=42.038%2C-88.286"), "directions include current location origin");
+`);
+
+runStep("admin lock and inline design", `
+  click("#adminOpenBtn");
+  assert(!!q("#adminPassword"), "admin starts locked");
+  q("#adminDialog").close();
+  assert(getComputedStyle(q("#editPageBtn")).display === "none", "edit page button is hidden for non-admins");
+  assert(q("#editPageBtn").disabled === true, "edit page button is disabled for non-admins");
+  assert(q("#editPageBtn").getAttribute("aria-hidden") === "true", "edit page button is removed from non-admin accessibility tree");
+  q("#editPageBtn").classList.remove("hidden");
+  q("#editPageBtn").disabled = false;
+  q("#editPageBtn").click();
+  assert(q("#inlineEditor").classList.contains("hidden"), "forced non-admin click cannot enter edit mode");
+  q("#editPageBtn").classList.add("hidden");
+  q("#editPageBtn").disabled = true;
+  assert(getComputedStyle(q("#adminOpenBtn")).backgroundColor === "rgba(0, 0, 0, 0)", "admin button is low-emphasis");
+  sessionStorage.setItem("elginResourceMap.adminSession.v1", "true");
+  click("#adminOpenBtn");
+  assert(text(".admin-header h2").includes("Administrator Panel"), "admin panel opens after session unlock");
+  assert(!!q("button[data-tab='content']"), "resources tab remains in modal");
+  assert(!!q("button[data-tab='categories']"), "categories tab remains in modal");
+  assert(!!q("button[data-tab='import']"), "import/export tab remains as utility tab");
+  assert(!q("button[data-tab='design']") && !q("button[data-tab='panels']") && !q("button[data-tab='arrange']"), "design panels and arrange tabs are removed from modal");
+  q("#adminDialog").close();
+  assert(getComputedStyle(q("#editPageBtn")).display !== "none", "edit page button is visible for admins");
+  click("#editPageBtn");
+  assert(!q("#inlineEditor").classList.contains("hidden"), "inline editor opens from public page");
+  assert(getComputedStyle(document.body, "::before").position === "fixed", "edit mode has a visible viewport indicator");
+  assert(!!q("[data-inline-action='open-panel'][data-panel='typography']"), "inline toolbar exposes typography panel");
+  assert(!!q("[data-inline-action='open-panel'][data-panel='colors']"), "inline toolbar exposes colors panel");
+  assert(!!q("[data-inline-action='open-panel'][data-panel='spacing']"), "inline toolbar exposes spacing panel");
+  assert(!!q("select[name='fontGlobal']"), "inline editor exposes site-wide font control");
+  assert(!!q("select[name='fontDetailPane']"), "inline editor exposes per-section font override");
+  assert(!!q("input[name='designHeaderPaddingY']"), "inline editor exposes header padding control");
+  assert(!!q("input[name='designCardRadius']"), "inline editor exposes shape controls");
+  assert(!!q("input[name='sidebarWidth']"), "inline editor exposes panel sizing controls");
+  setValue("#inlineEditor input[name='title']", "Test Elgin Resource Dashboard");
+  setValue("#inlineEditor input[name='mapLabel']", "Testing map label");
+  setValue("#inlineEditor select[name='fontGlobal']", "Helvetica", "change");
+  setValue("#inlineEditor select[name='fontStats']", "Montserrat", "change");
+  click("#inlineEditor [data-inline-action='open-panel'][data-panel='spacing']");
+  setValue("#inlineEditor input[name='designHeaderPaddingY']", "28");
+  setValue("#inlineEditor input[name='pinSize']", "44");
+  assert(getComputedStyle(q(".resource-marker")).width === "44px", "default map pins resize live while editing");
+  click("#inlineEditor [data-inline-action='save']");
+  assert(text("#siteTitle").includes("Test Elgin Resource Dashboard"), "design title updates");
+  assert(text("#mapLabel").includes("Testing map label"), "map label updates");
+  assert(getComputedStyle(q(".topbar")).paddingTop === "28px", "header padding updates");
+  assert(getComputedStyle(document.body).fontFamily.includes("Helvetica"), "site-wide font updates");
+  assert(getComputedStyle(q(".quick-stats strong")).fontFamily.includes("Montserrat"), "stats font override updates");
+  click("#editPageBtn");
+  setValue("#inlineEditor input[name='title']", "Temporary Title");
+  click("#inlineEditor [data-inline-action='reset-control'][data-scope='setting'][data-field='title']");
+  assert(q("#inlineEditor input[name='title']").value === "Elgin Homeless Resource Map", "individual inline fields can reset to defaults");
+  const start = new Event("dragstart", { bubbles: true });
+  start.dataTransfer = { effectAllowed: "", setData() {} };
+  q("#adminOpenBtn").dispatchEvent(start);
+  const drop = new Event("drop", { bubbles: true });
+  drop.dataTransfer = { dropEffect: "" };
+  q("#useLocationBtn").dispatchEvent(drop);
+  assert(Number(getComputedStyle(q("#adminOpenBtn")).order) < Number(getComputedStyle(q("#useLocationBtn")).order), "arrangement controls reorder header actions");
+  click("#inlineEditor [data-inline-action='reset-order']");
+  assert(Number(getComputedStyle(q("#useLocationBtn")).order) < Number(getComputedStyle(q("#adminOpenBtn")).order), "arrangement reset restores header actions");
+  click("#inlineEditor [data-inline-action='discard']");
+`);
+
+runStep("admin categories", `
+  click("#adminOpenBtn");
+  click("button[data-tab='categories']");
+  assert(!!q(".admin-category-item .admin-card-title"), "category list uses public-style cards");
+  click("button[data-action='new-category']");
+  setValue("input[name='name']", "Test Category");
+  setValue("input[name='icon']", "TC");
+  setValue("input[name='color']", "#123456", "input");
+  assert(q("[data-color-picker='color']").value.toLowerCase() === "#123456", "category color picker syncs from hex input");
+  clickText("button", "Save category");
+  assert(Array.from(document.querySelectorAll("#categoryFilter option")).some((option) => option.value === "Test Category") || text(".admin-list").includes("Test Category"), "admin can add/edit category");
+  click("button[data-action='save-category-default']");
+  setValue("input[name='icon']", "ZZ");
+  setValue("input[name='color']", "#abcdef", "input");
+  click("button[data-action='reset-category']");
+  assert(q("input[name='icon']").value === "TC", "category icon resets to saved default");
+  assert(q("input[name='color']").value.toLowerCase() === "#123456", "category color resets to saved default");
+  click("button[data-action='delete-category']");
+  assert(!text(".admin-list").includes("Test Category"), "admin can remove category");
+  click("button[data-action='select-category'][data-category='Meals']");
+  assert(!!q(".related-resources"), "category editor shows assigned resources");
+  click(".related-resource-chip");
+  assert(!!q("#resourceForm"), "clicking a related resource opens resources editor");
+  q("#adminDialog").close();
+  click("#editPageBtn");
+  click("#inlineEditor [data-inline-action='open-panel'][data-panel='spacing']");
+  setValue("#inlineEditor input[name='sidebarWidth']", "420");
+  setValue("#inlineEditor input[name='detailWidth']", "440");
+  setValue("#inlineEditor input[name='mapMinHeight']", "640");
+  q("#inlineEditor input[name='showStatsPanel']").checked = false;
+  q("#inlineEditor input[name='showStatsPanel']").dispatchEvent(new Event("change", { bubbles: true }));
+  q("#inlineEditor input[name='showDetailPanel']").checked = false;
+  q("#inlineEditor input[name='showDetailPanel']").dispatchEvent(new Event("change", { bubbles: true }));
+  click(".inline-visibility-toggle[data-feature='showMapToolbar']");
+  assert(q(".map-toolbar").classList.contains("edit-hidden-block"), "inline eye toggle previews hidden blocks during edit mode");
+  assert(!!q(".inline-resize-handle.right"), "inline panel resize handles are present");
+  const down = new MouseEvent("mousedown", { bubbles: true, clientX: 340, clientY: 300 });
+  q(".sidebar .inline-resize-handle.right").dispatchEvent(down);
+  document.dispatchEvent(new MouseEvent("mousemove", { bubbles: true, clientX: 380, clientY: 300 }));
+  document.dispatchEvent(new MouseEvent("mouseup", { bubbles: true, clientX: 380, clientY: 300 }));
+  assert(getComputedStyle(document.documentElement).getPropertyValue("--sidebar-width").trim() !== "420px", "dragging a panel edge resizes live");
+  click("#inlineEditor [data-inline-action='save']");
+  assert(getComputedStyle(document.documentElement).getPropertyValue("--map-min-height").trim() === "640px", "panel map height updates");
+  assert(q(".quick-stats").classList.contains("hidden"), "stats panel can be hidden");
+  assert(q(".dashboard").classList.contains("detail-hidden"), "details panel can be hidden");
+  click("#editPageBtn");
+  click("#inlineEditor [data-inline-action='open-panel'][data-panel='spacing']");
+  q("#inlineEditor input[name='showStatsPanel']").checked = true;
+  q("#inlineEditor input[name='showStatsPanel']").dispatchEvent(new Event("change", { bubbles: true }));
+  q("#inlineEditor input[name='showDetailPanel']").checked = true;
+  q("#inlineEditor input[name='showDetailPanel']").dispatchEvent(new Event("change", { bubbles: true }));
+  click("#inlineEditor [data-inline-action='save']");
+  assert(!q(".dashboard").classList.contains("detail-hidden"), "details panel can be restored");
+`);
+
+runStep("admin create and delete", `
+  click("#adminOpenBtn");
+  click("button[data-tab='content']");
+  setValue("#adminResourceSort", "name-desc", "change");
+  assert(text(".admin-resource-item").includes("Zion Lutheran Church"), "admin resource list sorts Z-A");
+  assert(!!q(".admin-resource-item .admin-card-dot"), "admin resource rows use card dots");
+  click("button[data-action='new-resource']");
+  setValue("input[name='name']", "Test Resource");
+  setValue("select[name='category']", "Community", "change");
+  setValue("input[name='address']", "1 Test Way, Elgin, IL");
+  setValue("input[name='lat']", "42.039");
+  setValue("input[name='lng']", "-88.287");
+  setValue("textarea[name='services']", "Test service");
+  setValue("textarea[name='hoursText']", "Monday 10:00 AM-11:00 AM");
+  setValue("input[name='pinIcon']", "TR");
+  setValue("input[name='pinColor']", "#123456");
+  assert(q("[data-color-picker='pinColor']").value.toLowerCase() === "#123456", "resource pin color picker syncs from hex input");
+  setValue("input[name='pinSize']", "48");
+  assert(getComputedStyle(q(".pin-preview-marker")).width === "48px", "resource pin size preview follows slider/input");
+  q("input[name='resourceCategory'][value='Meals']").checked = true;
+  q("input[name='scheduleDay'][value='1']").checked = true;
+  setValue("input[name='scheduleStart']", "10:00");
+  setValue("input[name='scheduleEnd']", "11:00");
+  click("button[data-action='add-schedule']");
+  click("button[data-action='save-resource-default']");
+  setValue("input[name='name']", "Changed Test Resource");
+  setValue("input[name='pinIcon']", "XX");
+  click("button[data-action='reset-resource']");
+  assert(q("input[name='name']").value === "Test Resource", "resource resets to saved default");
+  assert(q("input[name='pinIcon']").value === "TR", "resource pin icon resets to saved default");
+  clickText("button", "Save resource");
+  q("#adminDialog").close();
+  click("#resetViewBtn");
+  setValue("#categoryFilter", "Meals", "change");
+  setValue("#searchInput", "Test Resource");
+  assert(text(".resource-card .card-title").includes("Test Resource"), "admin can create a resource tagged with a secondary category");
+  assert(text(".resource-marker").includes("TR"), "admin can edit a pin icon");
+  assert(q(".resource-marker").style.getPropertyValue("--pin-color").trim().toLowerCase() === "#123456", "admin can edit a pin color");
+  click("#adminOpenBtn");
+  click("button[data-action='delete-resource']");
+  q("#adminDialog").close();
+  click("#resetViewBtn");
+  setValue("#searchInput", "Test Resource");
+  assert(text(".empty-state strong").includes("No matching resources"), "admin can delete resource");
+`);
+
+runStep("export and mobile presence", `
+  click("#adminOpenBtn");
+  click("button[data-tab='import']");
+  click("button[data-action='export-json']");
+  const exported = JSON.parse(q("#importExportText").value);
+  assert(Array.isArray(exported.resources), "export includes resources");
+  assert(!!exported.settings.title, "export includes settings");
+  exported.settings.title = "Imported Test Dashboard";
+  q("#importExportText").value = JSON.stringify(exported);
+  click("button[data-action='import-json']");
+  assert(text("#siteTitle").includes("Imported Test Dashboard"), "import applies settings");
+  click("button[data-action='reset-defaults']");
+  assert(text("#siteTitle").includes("Elgin Homeless Resource Map"), "reset restores defaults");
+  document.documentElement.style.width = "390px";
+  window.dispatchEvent(new Event("resize"));
+  assert(!!q(".real-map"), "map remains present at mobile width");
+  assert(document.body.scrollWidth <= window.innerWidth, "mobile layout does not create horizontal page overflow");
+  q("#adminDialog").close();
+  click("#resetViewBtn");
+`);
+
+const counts = JSON.parse(evalJavaScript(`JSON.stringify({
+  cardCount: document.querySelectorAll(".resource-card").length,
+  pinCount: document.querySelectorAll(".resource-marker").length
+})`, 5000));
+
+print(`All WKWebView smoke tests passed. Cards: ${counts.cardCount}. Pins: ${counts.pinCount}.`);
+
+function waitForLoad() {
+  const deadline = Date.now() + 15000;
+  while (webView.loading && Date.now() < deadline) {
+    runLoop.runUntilDate($.NSDate.dateWithTimeIntervalSinceNow(0.1));
+  }
+}
+
+function waitForExpression(expression, timeoutMs) {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    const script = `String(Boolean(${expression}))`;
+    const value = evalJavaScript(script, 2000);
+    if (value === "true") return;
+    runLoop.runUntilDate($.NSDate.dateWithTimeIntervalSinceNow(0.1));
+  }
+  throw new Error("Timed out waiting for " + expression);
+}
+
+function evalJavaScript(script, timeoutMs) {
+  let done = false;
+  let output = undefined;
+  let errorMessage = "";
+  webView.evaluateJavaScriptCompletionHandler(script, (result, error) => {
+    if (ObjC.unwrap(error) !== undefined) {
+      errorMessage = String(ObjC.unwrap(error.localizedDescription) || error);
+    } else {
+      output = ObjC.unwrap(result);
+    }
+    done = true;
+  });
+  const deadline = Date.now() + timeoutMs;
+  while (!done && Date.now() < deadline) {
+    runLoop.runUntilDate($.NSDate.dateWithTimeIntervalSinceNow(0.1));
+  }
+  if (!done) throw new Error("Timed out evaluating JavaScript");
+  if (errorMessage) throw new Error(errorMessage);
+  return output;
+}
+
+function runStep(name, body) {
+  const wrapped = `
+    (function () {
+      const failures = [];
+      window.confirm = () => true;
+      function assert(condition, message) {
+        if (!condition) failures.push(message);
+      }
+      function q(selector) {
+        return document.querySelector(selector);
+      }
+      function qa(selector) {
+        return Array.from(document.querySelectorAll(selector));
+      }
+      function text(selector) {
+        const el = q(selector);
+        return el ? el.textContent.trim() : "";
+      }
+      function setValue(selector, value, eventName) {
+        const el = q(selector);
+        assert(el, "Missing control: " + selector);
+        if (!el) return;
+        el.value = value;
+        el.dispatchEvent(new Event(eventName || "input", { bubbles: true }));
+      }
+      function click(selector) {
+        const el = q(selector);
+        assert(el, "Missing button/control: " + selector);
+        if (el) el.click();
+      }
+      function clickText(selector, fragment) {
+        const el = qa(selector).find((item) => item.textContent.includes(fragment));
+        assert(el, "Missing text button: " + fragment);
+        if (el) el.click();
+      }
+      try {
+        const extra = (function () {
+          ${body}
+          return {};
+        })() || {};
+        return JSON.stringify({ ok: failures.length === 0, failures, extra });
+      } catch (error) {
+        return JSON.stringify({
+          ok: false,
+          failures: [error && error.message ? error.message : String(error), error && error.stack ? error.stack : ""],
+        });
+      }
+    })()
+  `;
+  const result = JSON.parse(evalJavaScript("String(" + wrapped + ")", 10000));
+  if (!result.ok) {
+    print(`Step failed: ${name}`);
+    print(JSON.stringify(result, null, 2));
+    throw new Error(result.failures.join("\\n"));
+  }
+  print(`Passed: ${name}`);
+  return result.extra;
+}
+
+function print(value) {
+  const data = $.NSString.alloc.initWithUTF8String(String(value) + "\n").dataUsingEncoding($.NSUTF8StringEncoding);
+  $.NSFileHandle.fileHandleWithStandardOutput.writeData(data);
+}

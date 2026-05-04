@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Elgin Homeless Resource Map</title>
+    <link rel="stylesheet" href="./vendor/leaflet/leaflet.css" />
+    <link rel="stylesheet" href="./theme.css" />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <!-- Section: Public App Shell -->
+    <div id="app" class="app-shell">
+      <!-- Section: Public Header / Brand Bar -->
+      <header class="topbar" aria-label="Dashboard header">
+        <div class="brand-lockup">
+          <span class="brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 48 48" focusable="false">
+              <path class="mark-house" d="M10 24.5 24 12l14 12.5" />
+              <path class="mark-house" d="M15.5 23.5V38h17V23.5" />
+              <path class="mark-pin" d="M24 26.5c-2.4 0-4.3 1.9-4.3 4.3 0 3.2 4.3 7.2 4.3 7.2s4.3-4 4.3-7.2c0-2.4-1.9-4.3-4.3-4.3Z" />
+              <path class="mark-pin" d="M24 30.7h.01" />
+            </svg>
+          </span>
+          <div>
+            <p class="eyebrow">Elgin, Illinois</p>
+            <h1 id="siteTitle">Elgin Homeless Resource Map</h1>
+            <p id="siteSubtitle" class="subtitle">
+              Meals, shelter, health care, benefits, transportation, and crisis resources.
+            </p>
+          </div>
+        </div>
+        <div class="top-actions">
+          <button id="useLocationBtn" class="ghost-btn" type="button">Use my location</button>
+          <button id="editPageBtn" class="ghost-btn edit-page-btn hidden" type="button">Edit page</button>
+          <button id="adminOpenBtn" class="admin-btn" type="button" aria-haspopup="dialog">Admin</button>
+        </div>
+      </header>
+
+      <!-- Section: Three-Panel Resource Dashboard -->
+      <main class="dashboard">
+        <!-- Section: Left Resource Discovery Panel -->
+        <aside class="sidebar" aria-label="Resource filters and list">
+          <!-- Component: Search and Filter Card -->
+          <section class="search-panel">
+            <label for="searchInput">Search resources</label>
+            <input id="searchInput" type="search" autocomplete="off" placeholder="Meals, clinic, bus, legal..." />
+            <div class="filter-row">
+              <label class="sr-only" for="categoryFilter">Filter by category</label>
+              <select id="categoryFilter" aria-label="Filter by category">
+                <option value="All">All categories</option>
+              </select>
+              <label class="sr-only" for="sortFilter">Sort resources</label>
+              <select id="sortFilter" aria-label="Sort resources">
+                <option value="name-asc">A-Z</option>
+                <option value="name-desc">Z-A</option>
+                <option value="category-asc">Category A-Z</option>
+                <option value="category-desc">Category Z-A</option>
+              </select>
+              <label class="toggle">
+                <input id="openNowFilter" type="checkbox" />
+                <span>Open now</span>
+              </label>
+            </div>
+          </section>
+
+          <!-- Component: Quick Stats Strip -->
+          <section class="quick-stats" aria-label="Map summary">
+            <div>
+              <strong id="totalCount">0</strong>
+              <span>shown</span>
+            </div>
+            <div>
+              <strong id="openCount">0</strong>
+              <span>open</span>
+            </div>
+          </section>
+          <!-- Component: Category Chip Strip -->
+          <section class="category-strip" id="categoryStrip" aria-label="Category shortcuts"></section>
+
+          <!-- Component: Scrollable Resource Card List -->
+          <section class="resource-list" aria-label="Resources">
+            <div id="resourceList" class="cards"></div>
+            <div class="resource-list-fade" aria-hidden="true"></div>
+            <div class="scroll-more-cue" aria-hidden="true">
+              <svg class="scroll-more-icon" viewBox="0 0 24 24" focusable="false">
+                <path d="m6 9 6 6 6-6" />
+              </svg>
+              <span>Scroll for more</span>
+            </div>
+          </section>
+        </aside>
+
+        <!-- Section: Central Map Panel -->
+        <section class="map-area" aria-label="Interactive resource map">
+          <div class="map-toolbar">
+            <div>
+              <strong id="mapLabel">Elgin resource map</strong>
+              <span id="mapStatus">Select a pin or resource card.</span>
+            </div>
+            <button id="resetViewBtn" class="ghost-btn" type="button">Reset view</button>
+          </div>
+
+          <div class="map-wrap">
+            <div id="map" class="real-map" role="application" aria-label="Interactive street map of Elgin resources"></div>
+          </div>
+        </section>
+
+        <!-- Section: Right Resource Detail Panel -->
+        <aside id="detailPanel" class="detail-panel" aria-label="Selected resource details"></aside>
+      </main>
+    </div>
+
+    <!-- Section: Admin Modal / Data Management -->
+    <dialog id="adminDialog" class="admin-dialog">
+      <div class="admin-shell">
+        <header class="admin-header">
+          <div>
+            <p class="eyebrow">Private controls</p>
+            <h2>Administrator Panel</h2>
+          </div>
+          <button id="adminCloseBtn" class="icon-btn" type="button" aria-label="Close admin panel">Close</button>
+        </header>
+        <div id="adminBody" class="admin-body"></div>
+      </div>
+    </dialog>
+
+    <!-- Section: Inline Page Editor / Design Controls -->
+    <aside id="inlineEditor" class="inline-editor hidden" aria-label="Page editor"></aside>
+
+    <!-- Component Template: Empty Resource List State -->
+    <template id="emptyStateTemplate">
+      <div class="empty-state">
+        <strong>No matching resources</strong>
+        <span>Try a different search or clear the filters.</span>
+      </div>
+    </template>
+
+    <script src="./vendor/leaflet/leaflet.js" defer></script>
+    <script src="./app.js"></script>
+  </body>
+</html>

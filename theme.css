@@ -1,0 +1,371 @@
+:root {
+  color-scheme: light;
+
+  /* Foundation: font families and assignable typography slots for Framer/Figma text styles. */
+  --font-inter: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-montserrat: Montserrat, Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-proxima-nova: "Proxima Nova", Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-helvetica: "Helvetica Neue", Helvetica, Arial, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-global: var(--font-inter);
+  --font-headings: var(--font-global);
+  --font-body: var(--font-global);
+  --font-detail-pane: var(--font-global);
+  --font-list-cards: var(--font-global);
+  --font-stats: var(--font-global);
+  --font-ui: var(--font-global);
+
+  /* Foundation: type scale. Keep text styles mapped to these variables during migration. */
+  --type-title: 40px;
+  --type-detail-title: 32px;
+  --type-stat: 36px;
+  --type-admin-title: 28px;
+  --type-section: 20px;
+  --type-body: 16px;
+  --type-meta: 14px;
+  --type-micro: 12px;
+  --line-body: 1.5;
+  --line-heading: 1.2;
+  --tracking-micro: 0.06em;
+
+  --weight-regular: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+  --weight-bold: 800;
+
+  /* Foundation: spacing scale. New spacing should use these tokens only. */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+
+  --radius-control: 12px;
+  --radius-card: 16px;
+  --radius-pane: 20px;
+  --radius-pill: 999px;
+  --button-radius: var(--radius-control);
+
+  /* Component layout tokens: public shell, panels, cards, and controls. */
+  --app-padding: var(--space-5);
+  --header-padding-y: var(--space-5);
+  --header-padding-x: var(--space-6);
+  --header-gap: var(--space-5);
+  --brand-gap: var(--space-4);
+  --brand-mark-size: 64px;
+  --brand-icon-size: var(--space-7);
+  --brand-icon-stroke: 2.7;
+  --sidebar-padding: var(--space-4);
+  --card-padding: var(--space-4);
+  --detail-padding: var(--space-5);
+  --map-toolbar-padding-y: var(--space-4);
+  --map-toolbar-padding-x: var(--space-5);
+  --input-height: var(--space-7);
+  --chip-height: var(--target-min);
+
+  --target-min: 44px;
+  --focus-width: 2px;
+  --focus-offset: 2px;
+  --border-hairline: 1px;
+
+  /* Foundation: color system. These map cleanly to Figma variables and Framer color styles. */
+  --color-bg: #f8f9fb;
+  --color-bg-soft: #fbfcfd;
+  --color-surface: #ffffff;
+  --color-surface-raised: #ffffff;
+  --color-surface-muted: #f1f4f7;
+  --color-surface-search: #ffffff;
+  --color-surface-stats: #ffffff;
+  --color-surface-map: #ffffff;
+  --color-surface-detail: #ffffff;
+  --color-text: #15181d;
+  --color-text-soft: #343a43;
+  --color-muted: #5f6875;
+  --color-muted-strong: #454d58;
+  --color-line: #d9dee7;
+  --color-line-soft: #e7ebf1;
+
+  --color-primary: #155f5b;
+  --color-primary-hover: #0f4f4b;
+  --color-primary-active: #0b433f;
+  --color-primary-soft: #e5f1f0;
+  --color-primary-subtle: #eef8f7;
+  --color-primary-ring: rgba(21, 95, 91, 0.28);
+
+  --color-success: #246f45;
+  --color-success-soft: #edf7f1;
+  --color-crisis: #a95134;
+  --color-crisis-soft: #ffffff;
+  --color-destructive: #7d3d49;
+  --color-destructive-soft: #f6eef1;
+  --color-link: #155f5b;
+  --color-link-hover: #0f4f4b;
+
+  /* Foundation: elevation styles. */
+  --shadow-card: 0 8px 22px rgba(21, 29, 40, 0.05);
+  --shadow-card-hover: 0 12px 28px rgba(21, 29, 40, 0.07);
+  --shadow-pane: 0 14px 36px rgba(21, 29, 40, 0.06);
+  --shadow-popover: 0 18px 40px rgba(21, 29, 40, 0.08);
+
+  /* Component: category color variables used by chips, pins, cards, and detail tags. */
+  --category-shelter: #76509a;
+  --category-meals: #b85c34;
+  --category-groceries: #487f52;
+  --category-medical: #287783;
+  --category-mental-health: #675998;
+  --category-recovery: #89579a;
+  --category-crisis: #a95134;
+  --category-benefits: #376b9b;
+  --category-legal: #6c5e9c;
+  --category-immigration: #2d735f;
+  --category-transportation: #5f625e;
+  --category-community: #6f873e;
+  --category-seniors: #31866c;
+  --category-shelter-fill: color-mix(in srgb, var(--category-shelter) 12%, var(--color-surface-raised));
+  --category-meals-fill: color-mix(in srgb, var(--category-meals) 12%, var(--color-surface-raised));
+  --category-groceries-fill: color-mix(in srgb, var(--category-groceries) 12%, var(--color-surface-raised));
+  --category-medical-fill: color-mix(in srgb, var(--category-medical) 12%, var(--color-surface-raised));
+  --category-mental-health-fill: color-mix(in srgb, var(--category-mental-health) 12%, var(--color-surface-raised));
+  --category-recovery-fill: color-mix(in srgb, var(--category-recovery) 12%, var(--color-surface-raised));
+  --category-crisis-fill: color-mix(in srgb, var(--category-crisis) 12%, var(--color-surface-raised));
+  --category-benefits-fill: color-mix(in srgb, var(--category-benefits) 12%, var(--color-surface-raised));
+  --category-legal-fill: color-mix(in srgb, var(--category-legal) 12%, var(--color-surface-raised));
+  --category-immigration-fill: color-mix(in srgb, var(--category-immigration) 12%, var(--color-surface-raised));
+  --category-transportation-fill: color-mix(in srgb, var(--category-transportation) 12%, var(--color-surface-raised));
+  --category-community-fill: color-mix(in srgb, var(--category-community) 12%, var(--color-surface-raised));
+  --category-seniors-fill: color-mix(in srgb, var(--category-seniors) 12%, var(--color-surface-raised));
+
+  /* Legacy aliases kept so the current app.js admin settings continue to work until component refactor. */
+  --bg: var(--color-bg);
+  --surface: var(--color-surface);
+  --surface-2: var(--color-bg-soft);
+  --text: var(--color-text);
+  --muted: var(--color-muted);
+  --line: var(--color-line);
+  --accent: var(--color-primary);
+  --accent-dark: var(--color-primary-hover);
+  --danger: var(--color-destructive);
+  --shadow: var(--shadow-pane);
+
+  --pin-size: 36px;
+
+  /* Layout dimensions: code-driven in this prototype; rebuild these as responsive constraints in Framer. */
+  --sidebar-width: 348px;
+  --detail-width: 372px;
+  --panel-gap: var(--space-5);
+  --panel-min-height: calc(100vh - 142px);
+  --map-min-height: 520px;
+  --resource-list-height: 430px;
+  --matched-panel-height: var(--panel-min-height);
+
+  --layout-sidebar-min: 300px;
+  --layout-map-min: 520px;
+  --layout-map-min-compact: 420px;
+  --layout-detail-min: 320px;
+  --layout-panel-min-height: 360px;
+  --layout-subtitle-max: 760px;
+  --layout-popup-min: 220px;
+  --layout-admin-width: 1120px;
+  --layout-admin-nav-width: 280px;
+  --layout-admin-list-height: 660px;
+  --layout-admin-lock-max: 520px;
+  --layout-admin-body-offset: 118px;
+  --layout-import-textarea-min: 320px;
+  --layout-mobile-map-min: 360px;
+  --layout-mobile-map-min-small: 320px;
+  --layout-resource-list-mobile-max: 430px;
+  --layout-range-min: 120px;
+  --layout-number-width: 92px;
+  --layout-category-check-min: 150px;
+  --border-soft: color-mix(in srgb, #263246 8%, transparent);
+  --shadow-soft: 0 14px 34px color-mix(in srgb, #152033 6%, transparent);
+
+  /* Admin/editor tokens: distinct from public inputs so the editing UI remains readable. */
+  --admin-input-border: color-mix(in srgb, #263246 20%, transparent);
+  --admin-input-border-hover: color-mix(in srgb, #263246 30%, transparent);
+  --admin-input-surface: var(--color-surface-raised);
+}
+
+@media (max-width: 520px) {
+  :root {
+    --type-title: 36px;
+  }
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  min-height: 100%;
+  background: var(--color-bg);
+  font-size: var(--type-body);
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-body);
+  font-size: var(--type-body);
+  font-weight: var(--weight-regular);
+  line-height: var(--line-body);
+  text-rendering: optimizeLegibility;
+}
+
+button,
+input,
+select,
+textarea {
+  color: inherit;
+  font: inherit;
+}
+
+button,
+input,
+select {
+  min-height: var(--target-min);
+}
+
+textarea {
+  min-height: 96px;
+  resize: vertical;
+}
+
+button {
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.62;
+}
+
+a {
+  color: var(--color-link);
+  text-decoration-thickness: var(--border-hairline);
+  text-underline-offset: var(--space-1);
+}
+
+a:hover {
+  color: var(--color-link-hover);
+}
+
+h1,
+h2,
+h3,
+p {
+  margin-top: 0;
+}
+
+h1 {
+  margin-bottom: var(--space-2);
+  color: var(--color-text);
+  font-family: var(--font-headings);
+  font-size: var(--type-title);
+  font-weight: var(--weight-bold);
+  letter-spacing: -0.02em;
+  line-height: var(--line-heading);
+}
+
+h2 {
+  margin-bottom: var(--space-2);
+  color: var(--color-text);
+  font-size: var(--type-section);
+  font-weight: var(--weight-semibold);
+  letter-spacing: -0.01em;
+  line-height: var(--line-heading);
+}
+
+h3 {
+  margin-bottom: var(--space-2);
+  color: var(--color-text);
+  font-size: var(--type-body);
+  font-weight: var(--weight-semibold);
+  letter-spacing: 0;
+  line-height: var(--line-heading);
+}
+
+p {
+  margin-bottom: var(--space-4);
+}
+
+label {
+  display: block;
+  margin-bottom: var(--space-2);
+  color: var(--color-text-soft);
+  font-size: var(--type-meta);
+  font-weight: var(--weight-semibold);
+  line-height: var(--line-heading);
+}
+
+input,
+select,
+textarea {
+  width: 100%;
+  border: var(--border-hairline) solid var(--border-soft);
+  border-radius: var(--radius-control);
+  background: var(--color-surface-raised);
+  color: var(--color-text);
+  outline: none;
+  transition:
+    background-color 120ms ease,
+    border-color 120ms ease,
+    box-shadow 120ms ease;
+}
+
+input,
+select {
+  height: var(--target-min);
+  padding: var(--space-2) var(--space-3);
+}
+
+input[type="checkbox"],
+input[type="range"],
+input[type="color"] {
+  height: auto;
+}
+
+textarea {
+  padding: var(--space-3);
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--color-muted);
+  opacity: 1;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-primary-ring);
+}
+
+:focus-visible {
+  outline: var(--focus-width) solid var(--color-primary);
+  outline-offset: var(--focus-offset);
+}
+
+::selection {
+  background: var(--color-primary-soft);
+  color: var(--color-text);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+}
